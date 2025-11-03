@@ -1,23 +1,11 @@
 import { Strategy, RoundResult } from './types';
 
-// Always Cooperate
-export const alwaysCooperate: Strategy = {
-  name: 'Always Cooperate',
-  description: 'Always chooses to cooperate (free trade)',
-  decide: () => 'cooperate'
-};
-
-// Always Defect
-export const alwaysDefect: Strategy = {
-  name: 'Always Defect',
-  description: 'Always imposes tariffs (protectionism)',
-  decide: () => 'defect'
-};
-
 // Tit for Tat - The classic Axelrod winner
 export const titForTat: Strategy = {
+  id: 'tit-for-tat',
   name: 'Tit for Tat',
-  description: 'Start with cooperation, then copy opponent\'s last move',
+  description: 'Start with cooperation, then copy opponent\'s last move. Axelrod\'s tournament winner!',
+  icon: '🤝',
   decide: (history: RoundResult[], playerIndex: 1 | 2) => {
     if (history.length === 0) return 'cooperate';
     const lastRound = history[history.length - 1];
@@ -26,10 +14,30 @@ export const titForTat: Strategy = {
   }
 };
 
+// Always Cooperate
+export const alwaysCooperate: Strategy = {
+  id: 'always-cooperate',
+  name: 'Always Cooperate',
+  description: 'Pure altruism: always choose free trade. Gets exploited but promotes cooperation.',
+  icon: '😇',
+  decide: () => 'cooperate'
+};
+
+// Always Defect
+export const alwaysDefect: Strategy = {
+  id: 'always-defect',
+  name: 'Always Defect',
+  description: 'Pure selfishness: always impose tariffs. Short-term gains but fails in repeated games.',
+  icon: '😈',
+  decide: () => 'defect'
+};
+
 // Grim Trigger
 export const grimTrigger: Strategy = {
+  id: 'grim-trigger',
   name: 'Grim Trigger',
-  description: 'Cooperate until opponent defects once, then defect forever',
+  description: 'Cooperate until opponent defects once, then defect forever. Unforgiving.',
+  icon: '😠',
   decide: (history: RoundResult[], playerIndex: 1 | 2) => {
     for (const round of history) {
       const opponentAction = playerIndex === 1 ? round.player2Action : round.player1Action;
@@ -43,8 +51,10 @@ export const grimTrigger: Strategy = {
 
 // Pavlov (Win-Stay, Lose-Shift)
 export const pavlov: Strategy = {
+  id: 'pavlov',
   name: 'Pavlov',
-  description: 'If last round was good, repeat; if bad, switch',
+  description: 'Win-stay, lose-shift: repeat if successful, switch if not. Adapts to outcomes.',
+  icon: '🧠',
   decide: (history: RoundResult[], playerIndex: 1 | 2) => {
     if (history.length === 0) return 'cooperate';
 
@@ -65,8 +75,10 @@ export const pavlov: Strategy = {
 
 // Generous Tit for Tat
 export const generousTitForTat: Strategy = {
+  id: 'generous-tit-for-tat',
   name: 'Generous Tit for Tat',
-  description: 'Like Tit for Tat, but sometimes forgives defection (30% chance)',
+  description: 'Like Tit for Tat but sometimes forgives defection (30% chance). More robust.',
+  icon: '🤗',
   decide: (history: RoundResult[], playerIndex: 1 | 2) => {
     if (history.length === 0) return 'cooperate';
 
@@ -83,8 +95,10 @@ export const generousTitForTat: Strategy = {
 
 // Random
 export const random: Strategy = {
+  id: 'random',
   name: 'Random',
-  description: 'Randomly cooperate or defect (50/50)',
+  description: 'Unpredictable: randomly cooperate or defect (50/50). Baseline for comparison.',
+  icon: '🎲',
   decide: () => Math.random() < 0.5 ? 'cooperate' : 'defect'
 };
 

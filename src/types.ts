@@ -28,8 +28,10 @@ export interface GameResult {
 }
 
 export interface Strategy {
+  id: string;
   name: string;
   description: string;
+  icon: string;
   decide: (history: RoundResult[], playerIndex: 1 | 2) => Action;
 }
 

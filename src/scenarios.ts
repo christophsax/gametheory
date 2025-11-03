@@ -43,33 +43,70 @@ export const climateScenario: PayoffMatrix = {
 };
 
 export interface Scenario {
+  id: string;
   name: string;
   description: string;
+  icon: string;
   cooperateLabel: string;
   defectLabel: string;
   payoffMatrix: PayoffMatrix;
+  realWorld?: boolean;
+  countries?: [string, string];
 }
 
 export const SCENARIOS: Scenario[] = [
   {
+    id: 'tariff-war',
     name: 'Tariff War',
     description: 'Trade war where tariffs hurt both countries. Shows the self-destructive nature of protectionism.',
+    icon: '🏭',
     cooperateLabel: 'Free Trade',
     defectLabel: 'Impose Tariffs',
     payoffMatrix: tariffWarScenario
   },
   {
+    id: 'prisoners-dilemma',
     name: 'Classic Prisoner\'s Dilemma',
     description: 'The original scenario that started it all.',
+    icon: '⚖️',
     cooperateLabel: 'Stay Silent',
     defectLabel: 'Betray',
     payoffMatrix: classicPrisonersDilemma
   },
   {
+    id: 'climate',
     name: 'Climate Cooperation',
     description: 'Countries deciding whether to reduce emissions or free-ride.',
+    icon: '🌍',
     cooperateLabel: 'Reduce Emissions',
     defectLabel: 'Pollute',
     payoffMatrix: climateScenario
+  },
+  {
+    id: 'usa-china',
+    name: 'USA 🇺🇸 vs China 🇨🇳',
+    description: '2025 trade war: tariffs on imports creating lose-lose outcome for both economies.',
+    icon: '🇺🇸🇨🇳',
+    cooperateLabel: 'Free Trade',
+    defectLabel: 'Impose Tariffs',
+    payoffMatrix: tariffWarScenario,
+    realWorld: true,
+    countries: ['USA', 'China']
+  },
+  {
+    id: 'usa-switzerland',
+    name: 'USA 🇺🇸 vs Switzerland 🇨🇭',
+    description: 'Small neutral country facing US tariff threats. Should Switzerland retaliate or stay cooperative?',
+    icon: '🇺🇸🇨🇭',
+    cooperateLabel: 'Free Trade',
+    defectLabel: 'Impose Tariffs',
+    payoffMatrix: {
+      both_cooperate: [3, 3],
+      cooperate_defect: [0, 2],  // Switzerland hurt more by US tariffs
+      defect_cooperate: [2, 0],  // US less affected by Swiss tariffs
+      both_defect: [1, 0.5]      // Switzerland suffers more in trade war
+    },
+    realWorld: true,
+    countries: ['USA', 'Switzerland']
   }
 ];

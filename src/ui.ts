@@ -3,11 +3,20 @@ import { ALL_STRATEGIES } from './strategies';
 import { SCENARIOS, Scenario } from './scenarios';
 import { GameResult, TournamentResult } from './types';
 import { createChart } from './visualization';
+import { PayoffMatrixEditor } from './payoff-matrix-editor';
+import { CardSelector, CardOption } from './card-selector';
+import { sounds } from './sounds';
 
 export class UI {
   private engine: GameEngine;
   private currentScenario: Scenario;
   private chart: any = null;
+  private matrixEditor: PayoffMatrixEditor | null = null;
+  private scenarioSelector: CardSelector | null = null;
+  private strategy1Selector: CardSelector | null = null;
+  private strategy2Selector: CardSelector | null = null;
+  private selectedStrategy1Index: number = 0;
+  private selectedStrategy2Index: number = 1;
 
   constructor() {
     this.currentScenario = SCENARIOS[0]; // Default to Tariff War
@@ -26,44 +35,15 @@ export class UI {
       <div class="header">
         <h1>Tariff Wars: A Game Theory Simulation</h1>
         <p>Explore the prisoner's dilemma in trade policy and see why cooperation beats protectionism</p>
+        <button class="sound-toggle" id="sound-toggle" title="Toggle sound effects">
+          🔊 Sound ON
+        </button>
       </div>
 
       <div class="controls">
-        <div class="control-group">
-          <label for="scenario">Scenario</label>
-          <select id="scenario">
-            ${SCENARIOS.map((s, i) => `
-              <option value="${i}">${s.name}</option>
-            `).join('')}
-          </select>
-          <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);" id="scenario-description">
-            ${this.currentScenario.description}
-          </p>
-        </div>
-
-        <div class="control-group">
-          <label for="strategy1">Player 1 Strategy</label>
-          <select id="strategy1">
-            ${ALL_STRATEGIES.map((s, i) => `
-              <option value="${i}" ${i === 0 ? 'selected' : ''}>${s.name}</option>
-            `).join('')}
-          </select>
-          <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);" id="strategy1-description">
-            ${ALL_STRATEGIES[0].description}
-          </p>
-        </div>
-
-        <div class="control-group">
-          <label for="strategy2">Player 2 Strategy</label>
-          <select id="strategy2">
-            ${ALL_STRATEGIES.map((s, i) => `
-              <option value="${i}" ${i === 1 ? 'selected' : ''}>${s.name}</option>
-            `).join('')}
-          </select>
-          <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);" id="strategy2-description">
-            ${ALL_STRATEGIES[1].description}
-          </p>
-        </div>
+        <div id="scenario-selector"></div>
+        <div id="strategy1-selector"></div>
+        <div id="strategy2-selector"></div>
 
         <div class="control-group">
           <label for="rounds">Number of Rounds</label>
@@ -73,60 +53,152 @@ export class UI {
         <div class="button-group">
           <button class="primary" id="play-game">Play Game</button>
           <button class="primary" id="run-tournament">Run Tournament</button>
+          <button class="secondary" id="toggle-matrix">⚙️ Customize Payoffs</button>
           <button class="secondary" id="export-data">Export Data</button>
         </div>
       </div>
 
+      <div id="matrix-container" style="display: none;"></div>
       <div id="results-container"></div>
       <div id="visualization-container"></div>
       <div id="tournament-container"></div>
     `;
+
+    // Initialize scenario selector
+    const scenarioOptions: CardOption[] = SCENARIOS.map(s => ({
+      id: s.id,
+      title: s.name,
+      description: s.description,
+      icon: s.icon
+    }));
+
+    this.scenarioSelector = new CardSelector(
+      document.getElementById('scenario-selector')!,
+      'Choose Scenario',
+      scenarioOptions,
+      this.currentScenario.id,
+      (_id, index) => {
+        this.currentScenario = SCENARIOS[index];
+        this.engine.setPayoffMatrix(this.currentScenario.payoffMatrix);
+
+        // Update matrix editor
+        if (this.matrixEditor) {
+          const container = document.getElementById('matrix-container')!;
+          this.matrixEditor = new PayoffMatrixEditor(
+            container,
+            this.currentScenario.payoffMatrix,
+            (matrix) => {
+              this.engine.setPayoffMatrix(matrix);
+            }
+          );
+          if (container.style.display !== 'none') {
+            this.matrixEditor.render();
+          }
+        }
+      }
+    );
+    this.scenarioSelector.render();
+
+    // Initialize strategy selectors
+    const strategyOptions: CardOption[] = ALL_STRATEGIES.map(s => ({
+      id: s.id,
+      title: s.name,
+      description: s.description,
+      icon: s.icon
+    }));
+
+    this.strategy1Selector = new CardSelector(
+      document.getElementById('strategy1-selector')!,
+      'Player 1 Strategy',
+      strategyOptions,
+      ALL_STRATEGIES[0].id,
+      (_id, index) => {
+        this.selectedStrategy1Index = index;
+      }
+    );
+    this.strategy1Selector.render();
+
+    this.strategy2Selector = new CardSelector(
+      document.getElementById('strategy2-selector')!,
+      'Player 2 Strategy',
+      strategyOptions,
+      ALL_STRATEGIES[1].id,
+      (_id, index) => {
+        this.selectedStrategy2Index = index;
+      }
+    );
+    this.strategy2Selector.render();
+
+    // Initialize matrix editor
+    const matrixContainer = document.getElementById('matrix-container')!;
+    this.matrixEditor = new PayoffMatrixEditor(
+      matrixContainer,
+      this.currentScenario.payoffMatrix,
+      (matrix) => {
+        this.engine.setPayoffMatrix(matrix);
+      }
+    );
+    this.matrixEditor.render();
   }
 
   private attachEventListeners(): void {
-    // Scenario change
-    document.getElementById('scenario')!.addEventListener('change', (e) => {
-      const index = parseInt((e.target as HTMLSelectElement).value);
-      this.currentScenario = SCENARIOS[index];
-      this.engine.setPayoffMatrix(this.currentScenario.payoffMatrix);
-      document.getElementById('scenario-description')!.textContent = this.currentScenario.description;
+    // Sound toggle
+    document.getElementById('sound-toggle')!.addEventListener('click', () => {
+      const button = document.getElementById('sound-toggle')!;
+      const isEnabled = sounds.isEnabled();
+      sounds.setEnabled(!isEnabled);
+
+      if (!isEnabled) {
+        button.textContent = '🔊 Sound ON';
+        sounds.playJump(); // Test sound
+      } else {
+        button.textContent = '🔇 Sound OFF';
+      }
     });
 
-    // Strategy descriptions
-    document.getElementById('strategy1')!.addEventListener('change', (e) => {
-      const index = parseInt((e.target as HTMLSelectElement).value);
-      document.getElementById('strategy1-description')!.textContent = ALL_STRATEGIES[index].description;
-    });
+    // Event listeners for card selectors are handled in CardSelector class
 
-    document.getElementById('strategy2')!.addEventListener('change', (e) => {
-      const index = parseInt((e.target as HTMLSelectElement).value);
-      document.getElementById('strategy2-description')!.textContent = ALL_STRATEGIES[index].description;
+    // Toggle matrix editor
+    document.getElementById('toggle-matrix')!.addEventListener('click', () => {
+      sounds.playJump();
+      const container = document.getElementById('matrix-container')!;
+      const button = document.getElementById('toggle-matrix')! as HTMLButtonElement;
+
+      if (container.style.display === 'none') {
+        container.style.display = 'block';
+        button.textContent = '⚙️ Hide Payoffs';
+        container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        container.style.display = 'none';
+        button.textContent = '⚙️ Customize Payoffs';
+      }
     });
 
     // Play game button
     document.getElementById('play-game')!.addEventListener('click', () => {
+      sounds.playPowerUp();
       this.playGame();
     });
 
     // Run tournament button
     document.getElementById('run-tournament')!.addEventListener('click', () => {
+      sounds.playStar();
       this.runTournament();
     });
 
     // Export data button
     document.getElementById('export-data')!.addEventListener('click', () => {
+      sounds.playCoin();
       this.exportData();
     });
   }
 
   private playGame(): void {
-    const strategy1Index = parseInt((document.getElementById('strategy1') as HTMLSelectElement).value);
-    const strategy2Index = parseInt((document.getElementById('strategy2') as HTMLSelectElement).value);
     const rounds = parseInt((document.getElementById('rounds') as HTMLInputElement).value);
 
     const result = this.engine.playGame(
-      ALL_STRATEGIES[strategy1Index],
-      ALL_STRATEGIES[strategy2Index],
+      ALL_STRATEGIES[this.selectedStrategy1Index],
+      ALL_STRATEGIES[this.selectedStrategy2Index],
       rounds
     );
 
@@ -309,13 +381,11 @@ export class UI {
 
     if (resultsContainer.innerHTML) {
       // Export game results
-      const strategy1Index = parseInt((document.getElementById('strategy1') as HTMLSelectElement).value);
-      const strategy2Index = parseInt((document.getElementById('strategy2') as HTMLSelectElement).value);
       const rounds = parseInt((document.getElementById('rounds') as HTMLInputElement).value);
 
       const result = this.engine.playGame(
-        ALL_STRATEGIES[strategy1Index],
-        ALL_STRATEGIES[strategy2Index],
+        ALL_STRATEGIES[this.selectedStrategy1Index],
+        ALL_STRATEGIES[this.selectedStrategy2Index],
         rounds
       );
 
