@@ -14,7 +14,7 @@ An interactive web-based game theory simulation exploring the prisoner's dilemma
 
 ## Live Demo
 
-[View Live Demo](https://christophsax.github.io/gametheory/) (once deployed)
+[View Live Demo](https://christophsax.github.io/gametheory/)
 
 ## Why This Project?
 
@@ -35,7 +35,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173
+Open http://localhost:5173/gametheory/
 
 ### Production Build
 
